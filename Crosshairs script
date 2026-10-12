@@ -1,0 +1,2137 @@
+-- ===== PART 1 of 5 =====
+-- Put ALL parts, IN ORDER, into ONE LocalScript (StarterPlayer > StarterPlayerScripts).
+-- Paste part 1, then part 2 directly below it, and so on. Delete any older crosshair scripts first.
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
+local V5, C5, RGB, UO, U2, US, V2, C3 = Vector2.new(0.5, 0.5), UDim2.fromScale(0.5, 0.5), Color3.fromRGB, UDim2.fromOffset, UDim2.new, UDim2.fromScale, Vector2.new, Color3.new
+local GB, GN = Enum.Font.GothamBold, Enum.Font.Gotham
+local player = Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
+local gui = Instance.new("ScreenGui")
+gui.Name = "CrosshairInventory"
+gui.IgnoreGuiInset = true
+gui.ResetOnSpawn = false
+gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+gui.Parent = playerGui
+local function make(class, props, children)
+local obj = Instance.new(class)
+if obj:IsA("GuiObject") then obj.BorderSizePixel = 0 end
+for k, v in pairs(props) do
+obj[k] = v
+end
+for _, c in ipairs(children or {}) do
+c.Parent = obj
+end
+return obj
+end
+local function corner(r)
+return make("UICorner", { CornerRadius = UDim.new(0, r) })
+end
+local function stroke(color, thickness, transparency)
+return make("UIStroke", {
+Color = color,
+Thickness = thickness,
+Transparency = transparency or 0,
+ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
+})
+end
+local function dot(parent, size, color)
+return make("Frame", {
+AnchorPoint = V5,
+Position = C5,
+Size = UO(size, size),
+BackgroundColor3 = color,
+Parent = parent,
+}, { corner(size) })
+end
+local function bar(parent, x, y, w, h, color)
+return make("Frame", {
+AnchorPoint = V5,
+Position = U2(0.5, x, 0.5, y),
+Size = UO(w, h),
+BackgroundColor3 = color,
+Parent = parent,
+})
+end
+local Crosshairs = {}
+-- 0) None
+table.insert(Crosshairs, {
+Name = "None",
+Build = nil,
+})
+-- 1) Your Teal Shining Moving crosshair
+table.insert(Crosshairs, {
+Name = "Teal Shining Ring",
+Build = function(holder)
+local ring = make("Frame", {
+AnchorPoint = V5,
+Position = C5,
+Size = UO(16, 16),
+BackgroundTransparency = 1,
+Parent = holder,
+}, { corner(100) })
+local ringStroke = stroke(RGB(0, 255, 220), 2, 0.05)
+ringStroke.Parent = ring
+local glow = make("Frame", {
+AnchorPoint = V5,
+Position = C5,
+Size = UO(23, 23),
+BackgroundTransparency = 1,
+ZIndex = ring.ZIndex - 1,
+Parent = holder,
+}, { corner(100) })
+local glowStroke = stroke(RGB(0, 255, 220), 3, 0.72)
+glowStroke.Parent = glow
+return function(elapsed)
+local pulse = (math.sin(elapsed * 3) + 1) / 2
+local shine = (math.sin(elapsed * 5) + 1) / 2
+local size = 15 + pulse * 3
+local glowSize = size + 8 + shine * 3
+local position = U2(
+0.5, math.sin(elapsed * 1.5) * 2,
+0.5, math.cos(elapsed * 1.8) * 2
+)
+ring.Position = position
+glow.Position = position
+ring.Size = UO(size, size)
+glow.Size = UO(glowSize, glowSize)
+ringStroke.Transparency = 0.05 + shine * 0.25
+ringStroke.Thickness = 1.8 + pulse * 0.7
+glowStroke.Transparency = 0.82 - shine * 0.3
+local c = RGB(0, 220 + math.floor(shine * 35), 210 + math.floor(shine * 45))
+ringStroke.Color = c
+glowStroke.Color = c
+end
+end,
+})
+-- 2) Classic white cross with gap
+table.insert(Crosshairs, {
+Name = "Classic Cross",
+Build = function(holder)
+local c = RGB(255, 255, 255)
+bar(holder, 0, -9, 2, 8, c)
+bar(holder, 0, 9, 2, 8, c)
+bar(holder, -9, 0, 8, 2, c)
+bar(holder, 9, 0, 8, 2, c)
+end,
+})
+-- 3) Red dot
+table.insert(Crosshairs, {
+Name = "Red Dot",
+Build = function(holder)
+dot(holder, 6, RGB(255, 50, 50))
+end,
+})
+-- 4) Green circle + dot
+table.insert(Crosshairs, {
+Name = "Green Circle",
+Build = function(holder)
+local ring = make("Frame", {
+AnchorPoint = V5,
+Position = C5,
+Size = UO(22, 22),
+BackgroundTransparency = 1,
+Parent = holder,
+}, { corner(100), stroke(RGB(80, 255, 120), 2, 0.1) })
+dot(holder, 3, RGB(80, 255, 120))
+end,
+})
+-- 5) Rainbow spinning plus
+table.insert(Crosshairs, {
+Name = "Rainbow Plus",
+Build = function(holder)
+local parts = {
+bar(holder, 0, -8, 2, 10, C3(1, 1, 1)),
+bar(holder, 0, 8, 2, 10, C3(1, 1, 1)),
+bar(holder, -8, 0, 10, 2, C3(1, 1, 1)),
+bar(holder, 8, 0, 10, 2, C3(1, 1, 1)),
+}
+local center = dot(holder, 3, C3(1, 1, 1))
+return function(elapsed)
+local color = Color3.fromHSV((elapsed * 0.4) % 1, 1, 1)
+for _, p in ipairs(parts) do
+p.BackgroundColor3 = color
+end
+center.BackgroundColor3 = color
+end
+end,
+})
+-- 6) Pink Diamond
+table.insert(Crosshairs, {
+Name = "Pink Diamond",
+Build = function(holder)
+local PINK = RGB(255, 105, 180)
+local SPIN_TIME = 0.7
+local PAUSE_TIME = 2
+local TURNS = 2
+local glow = make("Frame", {
+AnchorPoint = V5,
+Position = C5,
+Size = UO(20, 20),
+Rotation = 45,
+BackgroundTransparency = 1,
+Parent = holder,
+})
+local glowStroke = stroke(PINK, 4, 0.78)
+glowStroke.Parent = glow
+local square = make("Frame", {
+AnchorPoint = V5,
+Position = C5,
+Size = UO(14, 14),
+Rotation = 45,
+BackgroundTransparency = 1,
+Parent = holder,
+})
+stroke(PINK, 2, 0).Parent = square
+dot(holder, 3, PINK)
+local start = os.clock()
+local cycle = PAUSE_TIME + SPIN_TIME
+return function()
+local t = (os.clock() - start) % cycle
+local rot = 45
+local spinning = false
+if t >= PAUSE_TIME then
+spinning = true
+local alpha = (t - PAUSE_TIME) / SPIN_TIME
+local eased = TweenService:GetValue(alpha, Enum.EasingStyle.Circular, Enum.EasingDirection.InOut)
+rot = 45 + eased * 360 * TURNS
+end
+square.Rotation = rot
+glow.Rotation = rot
+glowStroke.Transparency = spinning and 0.5 or 0.78
+end
+end,
+})
+-- 7) Spinning maroon crosshair (4 arrows pointing in, constant spin + motion blur)
+table.insert(Crosshairs, {
+Name = "Spinning Maroon Crosshair",
+Build = function(holder)
+local MAROON = RGB(140, 0, 35)
+local SPEED = 300
+local BLUR_STEP = 7
+local function buildRotor(transparency, zIndex)
+local rotor = make("Frame", {
+AnchorPoint = V5,
+Position = C5,
+Size = UO(50, 50),
+BackgroundTransparency = 1,
+ZIndex = zIndex,
+Parent = holder,
+})
+for k = 0, 3 do
+local arm = make("Frame", {
+AnchorPoint = V5,
+Position = C5,
+Size = US(1, 1),
+Rotation = k * 90,
+BackgroundTransparency = 1,
+ZIndex = zIndex,
+Parent = rotor,
+})
+local shaft = bar(arm, 0, -14, 2, 14, MAROON)
+local headL = bar(arm, -2.5, -9, 2, 7, MAROON)
+local headR = bar(arm, 2.5, -9, 2, 7, MAROON)
+headL.Rotation = -45
+headR.Rotation = 45
+for _, part in ipairs({ shaft, headL, headR }) do
+part.BackgroundTransparency = transparency
+part.ZIndex = zIndex
+end
+end
+return rotor
+end
+local ghostAlphas = { 0.6, 0.75, 0.85, 0.92 }
+local ghosts = {}
+for i, a in ipairs(ghostAlphas) do
+ghosts[i] = buildRotor(a, 1)
+end
+local main = buildRotor(0, 2)
+dot(holder, 3, MAROON).ZIndex = 3
+return function(elapsed)
+local rot = (elapsed * SPEED) % 360
+main.Rotation = rot
+for i, ghost in ipairs(ghosts) do
+ghost.Rotation = rot - i * BLUR_STEP
+end
+end
+end,
+})
+-- 8) Orange Hollow Sphere
+table.insert(Crosshairs, {
+Name = "Orange Hollow Sphere",
+Build = function(holder)
+local ORANGE = RGB(255, 140, 0)
+local BASE, MAX = 18, 30
+local EXPAND_TIME = 0.35
+local RETURN_TIME = 0.30
+local CYCLE = EXPAND_TIME + RETURN_TIME
+local BLUR_LAG = 0.022
+local function sizeAt(t)
+local c = t % CYCLE
+if c < EXPAND_TIME then
+local a = TweenService:GetValue(c / EXPAND_TIME, Enum.EasingStyle.Quart, Enum.EasingDirection.Out)
+return BASE + (MAX - BASE) * a
+end
+local a = (c - EXPAND_TIME) / RETURN_TIME
+return MAX + (BASE - MAX) * a
+end
+local function ring(transparency, thickness)
+return make("Frame", {
+AnchorPoint = V5,
+Position = C5,
+Size = UO(BASE, BASE),
+BackgroundTransparency = 1,
+Parent = holder,
+}, { corner(100), stroke(ORANGE, thickness, transparency) })
+end
+local ghosts = {}
+for i, a in ipairs({ 0.55, 0.72, 0.84, 0.92 }) do
+ghosts[i] = ring(a, 2.5)
+end
+local main = ring(0, 2.5)
+dot(holder, 4, ORANGE)
+return function(elapsed)
+local s = sizeAt(elapsed)
+main.Size = UO(s, s)
+for i, g in ipairs(ghosts) do
+local gs = sizeAt(elapsed - i * BLUR_LAG)
+g.Size = UO(gs, gs)
+end
+end
+end,
+})
+-- 9) Blue Radar Ping
+table.insert(Crosshairs, {
+Name = "Blue Radar Ping",
+Build = function(holder)
+local BLUE = RGB(70, 160, 255)
+dot(holder, 4, BLUE)
+local rings = {}
+for i = 1, 2 do
+local r = make("Frame", {
+AnchorPoint = V5,
+Position = C5,
+Size = UO(8, 8),
+BackgroundTransparency = 1,
+Parent = holder,
+}, { corner(100) })
+local st = stroke(BLUE, 2, 0.2)
+st.Parent = r
+rings[i] = { frame = r, stroke = st, offset = (i - 1) * 0.5 }
+end
+return function(elapsed)
+for _, r in ipairs(rings) do
+local phase = (elapsed * 0.9 + r.offset) % 1
+local size = 8 + 28 * phase
+r.frame.Size = UO(size, size)
+r.stroke.Transparency = 0.1 + 0.9 * phase
+r.stroke.Thickness = 2.2 - phase * 1.4
+end
+end
+end,
+})
+-- 10) Purple Orbit
+table.insert(Crosshairs, {
+Name = "Purple Orbit",
+Build = function(holder)
+local PURPLE = RGB(185, 100, 255)
+local RADIUS = 14
+make("Frame", {
+AnchorPoint = V5,
+Position = C5,
+Size = UO(RADIUS * 2, RADIUS * 2),
+BackgroundTransparency = 1,
+Parent = holder,
+}, { corner(100), stroke(PURPLE, 1, 0.75) })
+dot(holder, 3, PURPLE)
+local bits = {}
+for comet = 0, 1 do
+for tail = 0, 3 do
+local size = 6 - tail
+local d = dot(holder, size, PURPLE)
+d.BackgroundTransparency = tail * 0.22
+bits[#bits + 1] = { frame = d, base = comet * math.pi, lag = tail * 0.13 }
+end
+end
+return function(elapsed)
+for _, b in ipairs(bits) do
+local a = elapsed * 4.5 + b.base - b.lag
+b.frame.Position = U2(0.5, math.cos(a) * RADIUS, 0.5, math.sin(a) * RADIUS)
+end
+end
+end,
+})
+-- 11) Gold Brackets
+table.insert(Crosshairs, {
+Name = "Gold Brackets",
+Build = function(holder)
+local GOLD = RGB(255, 200, 40)
+for _, sx in ipairs({ -1, 1 }) do
+for _, sy in ipairs({ -1, 1 }) do
+bar(holder, sx * 8.5, sy * 12, 7, 2, GOLD)
+bar(holder, sx * 12, sy * 8.5, 2, 7, GOLD)
+end
+end
+dot(holder, 2, GOLD)
+end,
+})
+-- 12) Red X Marker
+table.insert(Crosshairs, {
+Name = "Red X Marker",
+Build = function(holder)
+local RED = RGB(255, 55, 55)
+local slashes = {}
+for _, sx in ipairs({ -1, 1 }) do
+for _, sy in ipairs({ -1, 1 }) do
+local b = bar(holder, sx * 7, sy * 7, 2, 8, RED)
+b.Rotation = (sx * sy > 0) and -45 or 45
+slashes[#slashes + 1] = { frame = b, sx = sx, sy = sy }
+end
+end
+dot(holder, 2, RGB(255, 255, 255))
+return function(elapsed)
+local d = 7 + math.abs(math.sin(elapsed * 4)) * 3
+for _, s in ipairs(slashes) do
+s.frame.Position = U2(0.5, s.sx * d, 0.5, s.sy * d)
+end
+end
+end,
+})
+-- 13) Fire Ring
+table.insert(Crosshairs, {
+Name = "Fire Ring",
+Build = function(holder)
+local ring = make("Frame", {
+AnchorPoint = V5,
+Position = C5,
+Size = UO(22, 22),
+BackgroundTransparency = 1,
+Parent = holder,
+}, { corner(100) })
+local st = stroke(C3(1, 1, 1), 3, 0)
+st.Parent = ring
+local grad = Instance.new("UIGradient")
+grad.Color = ColorSequence.new({
+ColorSequenceKeypoint.new(0, RGB(255, 170, 0)),
+ColorSequenceKeypoint.new(0.35, RGB(255, 45, 0)),
+ColorSequenceKeypoint.new(0.7, RGB(255, 235, 70)),
+ColorSequenceKeypoint.new(1, RGB(255, 170, 0)),
+})
+grad.Parent = st
+dot(holder, 3, RGB(255, 120, 0))
+return function(elapsed)
+grad.Rotation = (elapsed * 220) % 360
+end
+end,
+})
+-- 14) Lime T-Shape
+table.insert(Crosshairs, {
+Name = "Lime T-Shape",
+Build = function(holder)
+local LIME = RGB(150, 255, 60)
+bar(holder, -9, 0, 8, 2, LIME)
+bar(holder, 9, 0, 8, 2, LIME)
+bar(holder, 0, 9, 2, 8, LIME)
+dot(holder, 2, LIME)
+end,
+})
+-- 15) Minimal Ring
+table.insert(Crosshairs, {
+Name = "Minimal Ring",
+Build = function(holder)
+make("Frame", {
+AnchorPoint = V5,
+Position = C5,
+Size = UO(18, 18),
+BackgroundTransparency = 1,
+Parent = holder,
+}, { corner(100), stroke(C3(1, 1, 1), 1.5, 0.1) })
+dot(holder, 2, C3(1, 1, 1))
+end,
+})
+-- END OF PART 1
+-- ===== PART 2 of 5 =====
+-- (paste directly below part 1)
+-- 16) Yellow Oscillate
+table.insert(Crosshairs, {
+Name = "Yellow Oscillate",
+Build = function(holder)
+local YELLOW = RGB(255, 225, 40)
+local R = 16
+local THICK = 2
+local BLUR_LAG = 0.03
+local MAX_DRIFT = 4.5
+local corners = { math.rad(-90), math.rad(30), math.rad(150) }
+local function pose(t)
+local rot = math.rad(math.sin(t * 2.6) * 40)
+local ox = math.sin(t * 3.1) * 3.2
+local oy = math.cos(t * 2.3) * 3.2
+local m = math.sqrt(ox * ox + oy * oy)
+if m > MAX_DRIFT then
+ox = ox / m * MAX_DRIFT
+oy = oy / m * MAX_DRIFT
+end
+return rot, ox, oy
+end
+local function newTriangle(transparency)
+local edges = {}
+for i = 1, 3 do
+edges[i] = make("Frame", {
+AnchorPoint = V5,
+Size = UO(R, THICK),
+BackgroundColor3 = YELLOW,
+BackgroundTransparency = transparency,
+Parent = holder,
+})
+end
+return edges
+end
+local function place(edges, t)
+local rot, ox, oy = pose(t)
+local v = {}
+for i, a in ipairs(corners) do
+v[i] = V2(math.cos(a + rot) * R + ox, math.sin(a + rot) * R + oy)
+end
+for i = 1, 3 do
+local p, q = v[i], v[i % 3 + 1]
+local mid = (p + q) / 2
+local d = q - p
+edges[i].Size = UO(d.Magnitude + THICK, THICK)
+edges[i].Position = U2(0.5, mid.X, 0.5, mid.Y)
+edges[i].Rotation = math.deg(math.atan2(d.Y, d.X))
+end
+end
+local ghosts = {}
+for i, a in ipairs({ 0.6, 0.78, 0.9 }) do
+ghosts[i] = newTriangle(a)
+end
+local main = newTriangle(0)
+dot(holder, 5, YELLOW)
+return function(elapsed)
+place(main, elapsed)
+for i, g in ipairs(ghosts) do
+place(g, elapsed - i * BLUR_LAG)
+end
+end
+end,
+})
+-- 17) Cyan Lock-On
+table.insert(Crosshairs, {
+Name = "Cyan Lock-On",
+Build = function(holder)
+local CYAN = RGB(60, 235, 255)
+local CYCLE, SPIN = 1.6, 0.5
+local square = make("Frame", {
+AnchorPoint = V5,
+Position = C5,
+Size = UO(22, 22),
+BackgroundTransparency = 1,
+Parent = holder,
+})
+stroke(CYAN, 2, 0).Parent = square
+dot(holder, 3, CYAN)
+return function(elapsed)
+local t = elapsed % CYCLE
+local rot, size = 0, 22
+if t < SPIN then
+local p = t / SPIN
+local a = TweenService:GetValue(p, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
+rot = a * 90
+size = 22 - math.sin(p * math.pi) * 6
+end
+square.Rotation = rot
+square.Size = UO(size, size)
+end
+end,
+})
+-- 18) Rainbow Ring
+table.insert(Crosshairs, {
+Name = "Rainbow Ring",
+Build = function(holder)
+local ring = make("Frame", {
+AnchorPoint = V5,
+Position = C5,
+Size = UO(22, 22),
+BackgroundTransparency = 1,
+Parent = holder,
+}, { corner(100) })
+local st = stroke(C3(1, 1, 1), 3, 0)
+st.Parent = ring
+local grad = Instance.new("UIGradient")
+grad.Color = ColorSequence.new({
+ColorSequenceKeypoint.new(0, RGB(255, 60, 60)),
+ColorSequenceKeypoint.new(0.17, RGB(255, 220, 60)),
+ColorSequenceKeypoint.new(0.33, RGB(80, 255, 100)),
+ColorSequenceKeypoint.new(0.5, RGB(60, 235, 255)),
+ColorSequenceKeypoint.new(0.67, RGB(80, 110, 255)),
+ColorSequenceKeypoint.new(0.83, RGB(230, 80, 255)),
+ColorSequenceKeypoint.new(1, RGB(255, 60, 60)),
+})
+grad.Parent = st
+dot(holder, 3, C3(1, 1, 1))
+return function(elapsed)
+grad.Rotation = (elapsed * 160) % 360
+end
+end,
+})
+-- 19) Breathing Dots
+table.insert(Crosshairs, {
+Name = "Breathing Dots",
+Build = function(holder)
+local ICE = RGB(215, 235, 255)
+local dirs = { V2(0, -1), V2(1, 0), V2(0, 1), V2(-1, 0) }
+local dots = {}
+for i = 1, 4 do
+dots[i] = dot(holder, 4, ICE)
+end
+dot(holder, 2, ICE)
+return function(elapsed)
+local r = 11 + math.sin(elapsed * 3) * 4
+for i, d in ipairs(dots) do
+d.Position = U2(0.5, dirs[i].X * r, 0.5, dirs[i].Y * r)
+end
+end
+end,
+})
+-- 20) Green Scope
+table.insert(Crosshairs, {
+Name = "Green Scope",
+Build = function(holder)
+local GREEN = RGB(90, 255, 140)
+make("Frame", {
+AnchorPoint = V5,
+Position = C5,
+Size = UO(36, 36),
+BackgroundTransparency = 1,
+Parent = holder,
+}, { corner(100), stroke(GREEN, 1.2, 0.1) })
+bar(holder, -11, 0, 14, 1.5, GREEN)
+bar(holder, 11, 0, 14, 1.5, GREEN)
+bar(holder, 0, -11, 1.5, 14, GREEN)
+bar(holder, 0, 11, 1.5, 14, GREEN)
+dot(holder, 2, GREEN)
+end,
+})
+-- 21) Heartbeat Dot
+table.insert(Crosshairs, {
+Name = "Heartbeat Dot",
+Build = function(holder)
+local PINKRED = RGB(255, 70, 100)
+local halo = dot(holder, 28, PINKRED)
+halo.BackgroundTransparency = 0.8
+local core = dot(holder, 9, PINKRED)
+return function(elapsed)
+local t = (elapsed * 1.1) % 1
+local b1 = math.exp(-(((t - 0.1) / 0.06) ^ 2))
+local b2 = math.exp(-(((t - 0.3) / 0.06) ^ 2)) * 0.7
+local k = math.min(1, b1 + b2)
+local c = 5 + 4 * k
+local h = 12 + 16 * k
+core.Size = UO(c, c)
+halo.Size = UO(h, h)
+halo.BackgroundTransparency = 0.85 - 0.3 * k
+end
+end,
+})
+-- 22) Dark green Rotation
+table.insert(Crosshairs, {
+Name = "Dark green Rotation",
+Build = function(holder)
+local DARK_GREEN = RGB(10, 125, 55)
+local SPIN_TIME = 0.55
+local COOLDOWN = 2
+local STEP = COOLDOWN + SPIN_TIME
+local BLUR_LAG = 0.02
+local function angleAt(t)
+if t < 0 then
+return 0
+end
+local n = math.floor(t / STEP)
+local local_t = t - n * STEP
+local a = 0
+if local_t >= COOLDOWN then
+a = TweenService:GetValue((local_t - COOLDOWN) / SPIN_TIME, Enum.EasingStyle.Cubic, Enum.EasingDirection.Out)
+end
+return (n + a) * 45
+end
+local function newCross(transparency)
+local rotor = make("Frame", {
+AnchorPoint = V5,
+Position = C5,
+Size = UO(40, 40),
+BackgroundTransparency = 1,
+Parent = holder,
+})
+local parts = {
+bar(rotor, 0, -10, 3, 12, DARK_GREEN),
+bar(rotor, 0, 10, 3, 12, DARK_GREEN),
+bar(rotor, -10, 0, 12, 3, DARK_GREEN),
+bar(rotor, 10, 0, 12, 3, DARK_GREEN),
+}
+for _, p in ipairs(parts) do
+p.BackgroundTransparency = transparency
+end
+return rotor
+end
+local ghosts = {}
+for i, a in ipairs({ 0.55, 0.72, 0.85 }) do
+ghosts[i] = newCross(a)
+end
+local main = newCross(0)
+dot(holder, 3, DARK_GREEN)
+return function(elapsed)
+local a = angleAt(elapsed)
+main.Rotation = a
+local spinning = angleAt(elapsed - 0.02) ~= a
+for i, g in ipairs(ghosts) do
+g.Visible = spinning
+g.Rotation = angleAt(elapsed - i * BLUR_LAG)
+end
+end
+end,
+})
+-- 23) Azure Atom
+table.insert(Crosshairs, {
+Name = "Azure Atom",
+Build = function(holder)
+local AZURE = RGB(30, 150, 255)
+local A, B = 17, 6.5
+local SEGMENTS = 28
+local orbitRot = { math.rad(0), math.rad(60), math.rad(120) }
+local speeds = { 3.2, 2.7, 3.7 }
+local phases = { 0, 2.1, 4.2 }
+local function point(i, theta)
+local x, y = A * math.cos(theta), B * math.sin(theta)
+local c, s = math.cos(orbitRot[i]), math.sin(orbitRot[i])
+return x * c - y * s, x * s + y * c
+end
+for i = 1, 3 do
+for k = 0, SEGMENTS - 1 do
+local x1, y1 = point(i, k / SEGMENTS * 2 * math.pi)
+local x2, y2 = point(i, (k + 1) / SEGMENTS * 2 * math.pi)
+local length = math.sqrt((x2 - x1) ^ 2 + (y2 - y1) ^ 2) + 0.5
+local seg = bar(holder, (x1 + x2) / 2, (y1 + y2) / 2, length, 1, AZURE)
+seg.Rotation = math.deg(math.atan2(y2 - y1, x2 - x1))
+seg.BackgroundTransparency = 0.5
+end
+end
+dot(holder, 5, RGB(120, 200, 255))
+local bits = {}
+for i = 1, 3 do
+for tail = 0, 2 do
+local d = dot(holder, 5 - tail * 1.2, AZURE)
+d.BackgroundTransparency = tail * 0.3
+bits[#bits + 1] = { frame = d, orbit = i, lag = tail * 0.2 }
+end
+end
+return function(elapsed)
+for _, b in ipairs(bits) do
+local theta = elapsed * speeds[b.orbit] + phases[b.orbit] - b.lag
+local x, y = point(b.orbit, theta)
+b.frame.Position = U2(0.5, x, 0.5, y)
+end
+end
+end,
+})
+-- 24) Neon Double Ring
+table.insert(Crosshairs, {
+Name = "Neon Double Ring",
+Build = function(holder)
+local MAGENTA = RGB(255, 60, 200)
+local CYAN = RGB(60, 235, 255)
+local function ring(color, thickness, transparency)
+local f = make("Frame", {
+AnchorPoint = V5,
+Position = C5,
+Size = UO(28, 28),
+BackgroundTransparency = 1,
+Parent = holder,
+}, { corner(100) })
+local st = stroke(color, thickness, transparency)
+st.Parent = f
+return f
+end
+local outerGlow = ring(MAGENTA, 5, 0.8)
+local outer = ring(MAGENTA, 2, 0)
+local innerGlow = ring(CYAN, 5, 0.8)
+local inner = ring(CYAN, 2, 0)
+dot(holder, 2, C3(1, 1, 1))
+return function(elapsed)
+local s = math.sin(elapsed * 3)
+local o = 28 + s * 3
+local i = 14 - s * 2
+outer.Size = UO(o, o)
+outerGlow.Size = UO(o + 3, o + 3)
+inner.Size = UO(i, i)
+innerGlow.Size = UO(i + 3, i + 3)
+end
+end,
+})
+-- 25) Spinning Star
+table.insert(Crosshairs, {
+Name = "Spinning Star",
+Build = function(holder)
+local GOLD = RGB(255, 215, 90)
+local function square(size)
+local f = make("Frame", {
+AnchorPoint = V5,
+Position = C5,
+Size = UO(size, size),
+BackgroundTransparency = 1,
+Parent = holder,
+})
+stroke(GOLD, 1.8, 0).Parent = f
+return f
+end
+local a = square(22)
+local b = square(22)
+dot(holder, 3, GOLD)
+return function(elapsed)
+a.Rotation = elapsed * 70
+b.Rotation = 45 - elapsed * 45
+end
+end,
+})
+-- 26) Glitch Crosshair
+table.insert(Crosshairs, {
+Name = "Glitch Crosshair",
+Build = function(holder)
+local function noise(n)
+return (math.sin(n * 12.9898) * 43758.5453) % 1
+end
+local function newCross(color)
+local rotor = make("Frame", {
+AnchorPoint = V5,
+Position = C5,
+Size = UO(30, 30),
+BackgroundTransparency = 1,
+Parent = holder,
+})
+bar(rotor, 0, -8, 2, 9, color)
+bar(rotor, 0, 8, 2, 9, color)
+bar(rotor, -8, 0, 9, 2, color)
+bar(rotor, 8, 0, 9, 2, color)
+return rotor
+end
+local red = newCross(RGB(255, 40, 70))
+local cyan = newCross(RGB(40, 240, 255))
+local main = newCross(C3(1, 1, 1))
+dot(holder, 2, C3(1, 1, 1))
+return function(elapsed)
+local burst = math.floor(elapsed * 6)
+local slot = math.floor(elapsed * 30)
+local glitching = noise(burst) > 0.72
+red.Visible = glitching
+cyan.Visible = glitching
+if glitching then
+red.Position = U2(0.5, (noise(slot) - 0.5) * 12, 0.5, (noise(slot + 7) - 0.5) * 6)
+cyan.Position = U2(0.5, (noise(slot + 13) - 0.5) * 12, 0.5, (noise(slot + 21) - 0.5) * 6)
+main.Position = U2(0.5, (noise(slot + 31) - 0.5) * 4, 0.5, 0)
+main.Visible = noise(slot + 41) > 0.2
+else
+main.Position = C5
+main.Visible = true
+end
+end
+end,
+})
+-- 27) Ice Snowflake
+table.insert(Crosshairs, {
+Name = "Ice Snowflake",
+Build = function(holder)
+local ICE = RGB(170, 225, 255)
+local rotor = make("Frame", {
+AnchorPoint = V5,
+Position = C5,
+Size = UO(40, 40),
+BackgroundTransparency = 1,
+Parent = holder,
+})
+for k = 0, 5 do
+local arm = make("Frame", {
+AnchorPoint = V5,
+Position = C5,
+Size = US(1, 1),
+Rotation = k * 60,
+BackgroundTransparency = 1,
+Parent = rotor,
+})
+bar(arm, 0, -10, 1.5, 18, ICE)
+local l = bar(arm, -3, -12, 1.5, 7, ICE)
+local r = bar(arm, 3, -12, 1.5, 7, ICE)
+l.Rotation = -50
+r.Rotation = 50
+end
+dot(holder, 3, ICE)
+return function(elapsed)
+rotor.Rotation = elapsed * 25
+end
+end,
+})
+-- 28) Crimson Chevrons
+table.insert(Crosshairs, {
+Name = "Crimson Chevrons",
+Build = function(holder)
+local CRIMSON = RGB(230, 30, 60)
+local strokes = {}
+for k = 0, 3 do
+local arm = make("Frame", {
+AnchorPoint = V5,
+Position = C5,
+Size = UO(40, 40),
+Rotation = k * 90,
+BackgroundTransparency = 1,
+Parent = holder,
+})
+local l = bar(arm, -3, -11, 2, 8, CRIMSON)
+local r = bar(arm, 3, -11, 2, 8, CRIMSON)
+l.Rotation = -45
+r.Rotation = 45
+strokes[#strokes + 1] = { l = l, r = r }
+end
+dot(holder, 3, CRIMSON)
+return function(elapsed)
+local y = -(11 + math.sin(elapsed * 4) * 3)
+for _, s in ipairs(strokes) do
+s.l.Position = U2(0.5, -3, 0.5, y)
+s.r.Position = U2(0.5, 3, 0.5, y)
+end
+end
+end,
+})
+-- 29) Expanding Lavender
+table.insert(Crosshairs, {
+Name = "Expanding Lavender",
+Build = function(holder)
+local LAVENDER = RGB(195, 165, 255)
+local HOLD = 4
+local MOVE = 0.6
+local SQUARE = 5
+local THICK = 2
+local ARM = 11
+local CYCLE = (HOLD + MOVE) * 2
+make("Frame", {
+AnchorPoint = V5,
+Position = C5,
+Size = UO(SQUARE, SQUARE),
+BackgroundColor3 = LAVENDER,
+ZIndex = 2,
+Parent = holder,
+})
+local right = bar(holder, 0, 0, 0, THICK, LAVENDER)
+local left = bar(holder, 0, 0, 0, THICK, LAVENDER)
+local down = bar(holder, 0, 0, THICK, 0, LAVENDER)
+local up = bar(holder, 0, 0, THICK, 0, LAVENDER)
+local start = os.clock()
+return function()
+local t = (os.clock() - start) % CYCLE
+local p = 0
+if t < HOLD then
+p = 0
+elseif t < HOLD + MOVE then
+p = TweenService:GetValue((t - HOLD) / MOVE, Enum.EasingStyle.Cubic, Enum.EasingDirection.Out)
+elseif t < HOLD * 2 + MOVE then
+p = 1
+else
+local a = (t - (HOLD * 2 + MOVE)) / MOVE
+p = 1 - TweenService:GetValue(a, Enum.EasingStyle.Cubic, Enum.EasingDirection.InOut)
+end
+local len = ARM * p
+local center = SQUARE / 2 + len / 2
+right.Size = UO(len, THICK)
+right.Position = U2(0.5, center, 0.5, 0)
+left.Size = UO(len, THICK)
+left.Position = U2(0.5, -center, 0.5, 0)
+down.Size = UO(THICK, len)
+down.Position = U2(0.5, 0, 0.5, center)
+up.Size = UO(THICK, len)
+up.Position = U2(0.5, 0, 0.5, -center)
+end
+end,
+})
+-- END OF PART 2
+-- ===== PART 3 of 5 =====
+-- (paste directly below part 2)
+-- 30) Radar Sweep
+table.insert(Crosshairs, {
+Name = "Radar Sweep",
+Build = function(holder)
+local GREEN = RGB(60, 255, 150)
+local R = 16
+make("Frame", {
+AnchorPoint = V5,
+Position = C5,
+Size = UO(R * 2, R * 2),
+BackgroundTransparency = 1,
+Parent = holder,
+}, { corner(100), stroke(GREEN, 1.2, 0.35) })
+local function newBeam(transparency)
+local rotor = make("Frame", {
+AnchorPoint = V5,
+Position = C5,
+Size = UO(R * 2, R * 2),
+BackgroundTransparency = 1,
+Parent = holder,
+})
+bar(rotor, R / 2, 0, R, 2, GREEN).BackgroundTransparency = transparency
+return rotor
+end
+local ghosts = {}
+for i, a in ipairs({ 0.6, 0.72, 0.82, 0.9 }) do
+ghosts[i] = newBeam(a)
+end
+local main = newBeam(0)
+dot(holder, 3, GREEN)
+return function(elapsed)
+local rot = (elapsed * 200) % 360
+main.Rotation = rot
+for i, g in ipairs(ghosts) do
+g.Rotation = rot - i * 9
+end
+end
+end,
+})
+-- 31) Hypno Spiral
+table.insert(Crosshairs, {
+Name = "Hypno Spiral",
+Build = function(holder)
+local N = 12
+local dots = {}
+for i = 1, N do
+dots[i] = dot(holder, math.max(2, 5 - i * 0.3), C3(1, 1, 1))
+end
+return function(elapsed)
+for i, d in ipairs(dots) do
+local a = i * 0.75 + elapsed * 3
+local r = 2 + i * 1.3
+d.Position = U2(0.5, math.cos(a) * r, 0.5, math.sin(a) * r)
+d.BackgroundColor3 = Color3.fromHSV((elapsed * 0.3 + i / N * 0.5) % 1, 0.8, 1)
+end
+end
+end,
+})
+-- 32) Sonar Square
+table.insert(Crosshairs, {
+Name = "Sonar Square",
+Build = function(holder)
+local CORAL = RGB(255, 120, 100)
+dot(holder, 3, CORAL)
+local squares = {}
+for i = 1, 2 do
+local f = make("Frame", {
+AnchorPoint = V5,
+Position = C5,
+Size = UO(8, 8),
+BackgroundTransparency = 1,
+Parent = holder,
+})
+local st = stroke(CORAL, 2, 0.2)
+st.Parent = f
+squares[i] = { frame = f, stroke = st, offset = (i - 1) * 0.5 }
+end
+return function(elapsed)
+for _, s in ipairs(squares) do
+local phase = (elapsed * 0.8 + s.offset) % 1
+local size = 8 + 30 * phase
+s.frame.Size = UO(size, size)
+s.stroke.Transparency = 0.1 + 0.9 * phase
+s.stroke.Thickness = 2.2 - phase * 1.4
+end
+end
+end,
+})
+-- 33) Clock Ticks
+table.insert(Crosshairs, {
+Name = "Clock Ticks",
+Build = function(holder)
+local AMBER = RGB(255, 190, 60)
+local TICKS = 12
+local ticks = {}
+for k = 0, TICKS - 1 do
+local arm = make("Frame", {
+AnchorPoint = V5,
+Position = C5,
+Size = UO(40, 40),
+Rotation = k * (360 / TICKS),
+BackgroundTransparency = 1,
+Parent = holder,
+})
+ticks[k + 1] = bar(arm, 0, -14, 2, 6, AMBER)
+end
+dot(holder, 2, AMBER)
+return function(elapsed)
+local head = (elapsed * 2.5) % TICKS
+for k, t in ipairs(ticks) do
+local d = (head - (k - 1)) % TICKS
+t.BackgroundTransparency = math.clamp(d / (TICKS * 0.75), 0, 1) * 0.85
+end
+end
+end,
+})
+-- 34) Sakura Petals
+table.insert(Crosshairs, {
+Name = "Sakura Petals",
+Build = function(holder)
+local PINK = RGB(255, 150, 190)
+local PETALS = 5
+local petals = {}
+for k = 1, PETALS do
+petals[k] = make("Frame", {
+AnchorPoint = V5,
+Position = C5,
+Size = UO(11, 11),
+BackgroundTransparency = 1,
+Parent = holder,
+}, { corner(100), stroke(PINK, 1.5, 0.1) })
+end
+dot(holder, 3, RGB(255, 225, 238))
+return function(elapsed)
+local spin = elapsed * 0.9
+local r = 7 + math.sin(elapsed * 2.5) * 1.5
+for k, f in ipairs(petals) do
+local a = spin + (k - 1) * (2 * math.pi / PETALS)
+f.Position = U2(0.5, math.cos(a) * r, 0.5, math.sin(a) * r)
+end
+end
+end,
+})
+local updaters = {}
+local startTime = os.clock()
+RunService.RenderStepped:Connect(function()
+local elapsed = os.clock() - startTime
+for holder, fn in pairs(updaters) do
+if holder.Parent == nil then
+updaters[holder] = nil
+else
+fn(elapsed)
+end
+end
+end)
+local function mount(def, parent)
+local holder = make("Frame", {
+Name = "Holder",
+BackgroundTransparency = 1,
+Size = US(1, 1),
+Parent = parent,
+})
+if def.Build then
+local update = def.Build(holder)
+if update then
+updaters[holder] = update
+holder.Destroying:Connect(function()
+updaters[holder] = nil
+end)
+end
+end
+return holder
+end
+local Lighting = game:GetService("Lighting")
+local ACCENT = RGB(0, 255, 220)
+local COL_BG = RGB(17, 18, 25)
+local COL_PANEL = RGB(25, 26, 36)
+local COL_CARD = RGB(33, 35, 47)
+local COL_CARD_HOVER = RGB(45, 48, 64)
+local COL_BORDER = RGB(62, 65, 82)
+local COL_TEXT = RGB(255, 255, 255)
+local COL_SUB = RGB(150, 155, 172)
+local COL_GOLD = RGB(255, 205, 70)
+local COL_RED = RGB(205, 70, 85)
+local COL_DARKTEXT = RGB(0, 28, 26)
+local FAST = TweenInfo.new(0.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+local function tween(obj, info, goal)
+local t = TweenService:Create(obj, info, goal)
+t:Play()
+return t
+end
+local function label(props)
+props.BackgroundTransparency = 1
+props.Font = props.Font or GN
+props.TextColor3 = props.TextColor3 or COL_TEXT
+return make("TextLabel", props)
+end
+local function hoverify(btn, normal, hover)
+btn.MouseEnter:Connect(function()
+tween(btn, FAST, { BackgroundColor3 = hover })
+end)
+btn.MouseLeave:Connect(function()
+tween(btn, FAST, { BackgroundColor3 = normal })
+end)
+end
+local liveLayer = make("Frame", {
+Name = "LiveCrosshair",
+AnchorPoint = V5,
+Position = C5,
+Size = US(1, 1),
+BackgroundTransparency = 1,
+Parent = gui,
+})
+local liveScale = make("UIScale", { Parent = liveLayer })
+local equippedIndex = 1
+local selectedIndex = 2
+local shownIndex = 2
+local inventoryOpen = false
+local liveHolder
+local favorites = {}
+local currentFilter = "All"
+local searchText = ""
+local cardData = {}
+local refreshCards, showDetail, toast, setOpen
+local function refreshMouseIcon()
+local def = Crosshairs[equippedIndex]
+UserInputService.MouseIconEnabled = inventoryOpen or def.Build == nil
+end
+local function equip(index, silent)
+equippedIndex = index
+for _, c in ipairs(liveLayer:GetChildren()) do
+if c.Name == "Holder" then
+c:Destroy()
+end
+end
+liveHolder = nil
+local def = Crosshairs[index]
+if def.Build then
+liveHolder = mount(def, liveLayer)
+end
+refreshMouseIcon()
+refreshCards()
+showDetail(shownIndex)
+if not silent then
+toast(def.Build and ("Equipped: " .. def.Name) or "Crosshair removed")
+end
+end
+local blur = Instance.new("BlurEffect")
+blur.Name = "InventoryBlur"
+blur.Size = 0
+blur.Parent = Lighting
+local dim = make("TextButton", {
+Name = "Dim",
+Text = "",
+AutoButtonColor = false,
+BackgroundColor3 = C3(0, 0, 0),
+BackgroundTransparency = 1,
+Size = US(1, 1),
+Visible = false,
+ZIndex = 9,
+Parent = gui,
+})
+dim.MouseButton1Click:Connect(function()
+setOpen(false)
+end)
+local window = make("Frame", {
+Name = "Inventory",
+AnchorPoint = V5,
+Position = C5,
+Size = UO(780, 470),
+BackgroundColor3 = COL_BG,
+Visible = false,
+ZIndex = 10,
+Parent = gui,
+}, { corner(16), stroke(ACCENT, 1.5, 0.35) })
+local windowScale = make("UIScale", { Parent = window })
+local dragBar = make("Frame", {
+BackgroundTransparency = 1,
+Size = U2(1, 0, 0, 52),
+Parent = window,
+})
+label({
+Text = "Crosshair Inventory",
+Font = GB,
+TextSize = 20,
+TextXAlignment = Enum.TextXAlignment.Left,
+Position = UO(20, 7),
+Size = UO(260, 24),
+Parent = window,
+})
+label({
+Text = "Pick, favorite and tune your crosshair",
+TextSize = 12,
+TextColor3 = COL_SUB,
+TextXAlignment = Enum.TextXAlignment.Left,
+Position = UO(20, 30),
+Size = UO(260, 16),
+Parent = window,
+})
+local searchBox = make("TextBox", {
+Text = "",
+PlaceholderText = "Search crosshairs...",
+PlaceholderColor3 = COL_SUB,
+ClearTextOnFocus = false,
+Font = GN,
+TextSize = 14,
+TextColor3 = COL_TEXT,
+TextXAlignment = Enum.TextXAlignment.Left,
+BackgroundColor3 = COL_PANEL,
+Position = UO(300, 10),
+Size = UO(380, 32),
+Parent = window,
+}, {
+corner(8),
+make("UIPadding", { PaddingLeft = UDim.new(0, 12), PaddingRight = UDim.new(0, 12) }),
+stroke(COL_BORDER, 1, 0.4),
+})
+local closeBtn = make("TextButton", {
+Text = "X",
+Font = GB,
+TextSize = 15,
+TextColor3 = COL_TEXT,
+BackgroundColor3 = COL_RED,
+AutoButtonColor = false,
+AnchorPoint = V2(1, 0),
+Position = U2(1, -14, 0, 10),
+Size = UO(32, 32),
+Parent = window,
+}, { corner(8) })
+hoverify(closeBtn, COL_RED, RGB(235, 95, 110))
+closeBtn.MouseButton1Click:Connect(function()
+setOpen(false)
+end)
+make("Frame", {
+BackgroundColor3 = COL_BORDER,
+BackgroundTransparency = 0.5,
+Position = UO(0, 52),
+Size = U2(1, 0, 0, 1),
+Parent = window,
+})
+local tabs = make("Frame", {
+BackgroundTransparency = 1,
+Position = UO(16, 62),
+Size = UO(504, 30),
+Parent = window,
+}, {
+make("UIListLayout", {
+FillDirection = Enum.FillDirection.Horizontal,
+Padding = UDim.new(0, 8),
+SortOrder = Enum.SortOrder.LayoutOrder,
+}),
+})
+local tabNames = { "All", "Animated", "Static", "Favorites" }
+local tabButtons = {}
+for order, name in ipairs(tabNames) do
+local b = make("TextButton", {
+Text = name,
+Font = GB,
+TextSize = 13,
+TextColor3 = COL_SUB,
+BackgroundColor3 = COL_CARD,
+AutoButtonColor = false,
+LayoutOrder = order,
+Size = UO(name == "Favorites" and 112 or 90, 30),
+Parent = tabs,
+}, { corner(8) })
+b.MouseButton1Click:Connect(function()
+currentFilter = name
+refreshCards()
+end)
+tabButtons[name] = b
+end
+local scroll = make("ScrollingFrame", {
+BackgroundTransparency = 1,
+Position = UO(16, 100),
+Size = UO(504, 326),
+CanvasSize = U2(0, 0, 0, 0),
+AutomaticCanvasSize = Enum.AutomaticSize.Y,
+ScrollBarThickness = 4,
+ScrollBarImageColor3 = ACCENT,
+Parent = window,
+}, {
+make("UIGridLayout", {
+CellSize = UO(154, 138),
+CellPadding = UO(10, 10),
+SortOrder = Enum.SortOrder.LayoutOrder,
+}),
+make("UIPadding", {
+PaddingTop = UDim.new(0, 6),
+PaddingLeft = UDim.new(0, 6),
+PaddingBottom = UDim.new(0, 6),
+}),
+})
+local emptyLabel = label({
+Text = "No crosshairs found",
+Font = GB,
+TextSize = 16,
+TextColor3 = COL_SUB,
+Position = UO(16, 100),
+Size = UO(504, 326),
+Visible = false,
+Parent = window,
+})
+local footer = label({
+Text = "",
+TextSize = 12,
+TextColor3 = COL_SUB,
+TextXAlignment = Enum.TextXAlignment.Left,
+Position = UO(20, 436),
+Size = UO(500, 16),
+Parent = window,
+})
+label({
+Text = "C  open/close     [ ]  cycle     Click  equip     \u{2605}  favorite",
+TextSize = 11,
+TextColor3 = RGB(110, 115, 132),
+TextXAlignment = Enum.TextXAlignment.Left,
+Position = UO(20, 452),
+Size = UO(500, 14),
+Parent = window,
+})
+local panel = make("Frame", {
+BackgroundColor3 = COL_PANEL,
+Position = UO(536, 62),
+Size = UO(228, 394),
+Parent = window,
+}, { corner(12), stroke(COL_BORDER, 1, 0.5) })
+local previewBox = make("Frame", {
+BackgroundColor3 = RGB(9, 10, 14),
+ClipsDescendants = true,
+Position = UO(12, 12),
+Size = UO(204, 130),
+Parent = panel,
+}, { corner(10) })
+for _, off in ipairs({ -40, 0, 40 }) do
+make("Frame", {
+AnchorPoint = V5,
+Position = U2(0.5, off, 0.5, 0),
+Size = U2(0, 1, 1, 0),
+BackgroundColor3 = COL_BORDER,
+BackgroundTransparency = 0.7,
+Parent = previewBox,
+})
+make("Frame", {
+AnchorPoint = V5,
+Position = U2(0.5, 0, 0.5, off),
+Size = U2(1, 0, 0, 1),
+BackgroundColor3 = COL_BORDER,
+BackgroundTransparency = 0.7,
+Parent = previewBox,
+})
+end
+local previewWrapper = make("Frame", {
+AnchorPoint = V5,
+Position = C5,
+Size = US(1, 1),
+BackgroundTransparency = 1,
+Parent = previewBox,
+}, { make("UIScale", { Scale = 2 }) })
+local offLabel = label({
+Text = "NO CROSSHAIR",
+Font = GB,
+TextSize = 14,
+TextColor3 = COL_SUB,
+Size = US(1, 1),
+Visible = false,
+Parent = previewBox,
+})
+local nameLabel = label({
+Text = "",
+Font = GB,
+TextSize = 17,
+TextXAlignment = Enum.TextXAlignment.Left,
+TextTruncate = Enum.TextTruncate.AtEnd,
+Position = UO(14, 150),
+Size = UO(200, 22),
+Parent = panel,
+})
+-- END OF PART 3
+
+-- ===== NEW CROSSHAIRS BLOCK 6 =====
+-- Paste this block directly ABOVE the line  local updaters = {}
+-- (that line comes right after the Sakura Petals crosshair).
+
+-- 35) Faded Gray: a gray cross + a round dot. The four lines fade in far from the dot, glide to their
+-- spot near the dot over 5 seconds, fade out, then everything rests 3 seconds (only the dot shows). Repeats.
+table.insert(Crosshairs, {
+	Name = "Faded Gray",
+	Build = function(holder)
+		local GRAY = Color3.fromRGB(175, 175, 175)
+		local MOVE = 5 -- seconds the lines take to glide
+		local FADE = 1 -- seconds of fade in at the start and fade out at the end
+		local COOLDOWN = 3 -- seconds with only the dot showing
+		local CYCLE = MOVE + COOLDOWN
+		local LEN, THICK = 9, 2 -- length / thickness of each line
+		local HOME, OUTER = 6, 22 -- distance of a line's inner end from the dot: resting spot / far away spot
+		local FROM_OUTSIDE = true -- true: lines appear far away and glide toward the dot. false: they start by the dot and glide out
+		local startDist = FROM_OUTSIDE and OUTER or HOME
+		local endDist = FROM_OUTSIDE and HOME or OUTER
+
+		local right = bar(holder, 0, 0, LEN, THICK, GRAY)
+		local left = bar(holder, 0, 0, LEN, THICK, GRAY)
+		local down = bar(holder, 0, 0, THICK, LEN, GRAY)
+		local up = bar(holder, 0, 0, THICK, LEN, GRAY)
+		dot(holder, 6, Color3.fromRGB(205, 205, 205)) -- the round dot never moves or fades
+
+		local start = os.clock()
+
+		return function()
+			local t = (os.clock() - start) % CYCLE
+			local alpha, dist = 0, endDist
+			if t < MOVE then
+				local e = TweenService:GetValue(t / MOVE, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut)
+				dist = startDist + (endDist - startDist) * e
+				alpha = math.clamp(math.min(t / FADE, (MOVE - t) / FADE), 0, 1)
+			end
+
+			local c = dist + LEN / 2
+			right.Position = UDim2.new(0.5, c, 0.5, 0)
+			left.Position = UDim2.new(0.5, -c, 0.5, 0)
+			down.Position = UDim2.new(0.5, 0, 0.5, c)
+			up.Position = UDim2.new(0.5, 0, 0.5, -c)
+
+			local tr = 1 - alpha * 0.9
+			right.BackgroundTransparency = tr
+			left.BackgroundTransparency = tr
+			down.BackgroundTransparency = tr
+			up.BackgroundTransparency = tr
+		end
+	end,
+})
+
+-- 36) Monochrome: a black cross with a white rim. A white shine sweeps up through it (only inside the cross, like a clipping mask)
+table.insert(Crosshairs, {
+	Name = "Monochrome",
+	Build = function(holder)
+		local WHITE = Color3.new(1, 1, 1)
+		local BLACK = Color3.new(0, 0, 0)
+		local GAP, LEN = 4, 11 -- the cross arms run from 4 to 15 pixels away from the center
+		local MID = GAP + LEN / 2
+		local SWEEP, PAUSE = 1.1, 0.9 -- seconds the shine takes to travel up / rest before the next one
+		local CYCLE = SWEEP + PAUSE
+		local BAND = 6 -- how wide (in pixels) the shine is
+
+		-- white rim behind everything (always visible, so the black cross can be seen on dark backgrounds)
+		bar(holder, 0, -MID, 4, LEN + 2, WHITE)
+		bar(holder, 0, MID, 4, LEN + 2, WHITE)
+		bar(holder, -MID, 0, LEN + 2, 4, WHITE)
+		bar(holder, MID, 0, LEN + 2, 4, WHITE)
+		dot(holder, 7, WHITE)
+
+		-- the black cross itself. The up/down arms are cut into thin slices so the shine can pass through them one slice at a time
+		local slices = {}
+		for _, sign in ipairs({ -1, 1 }) do
+			for k = 0, LEN - 1 do
+				local y = sign * (GAP + k + 0.5)
+				slices[#slices + 1] = { frame = bar(holder, 0, y, 2, 1.6, BLACK), y = y }
+			end
+		end
+		local sides = {
+			bar(holder, -MID, 0, LEN, 2, BLACK),
+			bar(holder, MID, 0, LEN, 2, BLACK),
+			dot(holder, 5, BLACK),
+		}
+
+		local start = os.clock()
+
+		local function level(y, bandY)
+			local i = math.clamp(1 - math.abs(y - bandY) / BAND, 0, 1)
+			return i ^ 1.3
+		end
+
+		return function()
+			local t = (os.clock() - start) % CYCLE
+			local bandY = 999 -- off screen while resting
+			if t < SWEEP then
+				local e = TweenService:GetValue(t / SWEEP, Enum.EasingStyle.Quad, Enum.EasingDirection.InOut)
+				bandY = 24 - 48 * e -- starts below the cross and travels up to above it
+			end
+			for _, s in ipairs(slices) do
+				local v = level(s.y, bandY)
+				s.frame.BackgroundColor3 = Color3.new(v, v, v)
+			end
+			local v = level(0, bandY)
+			for _, f in ipairs(sides) do
+				f.BackgroundColor3 = Color3.new(v, v, v)
+			end
+		end
+	end,
+})
+
+-- 37) Ember Burst: orange sparks shoot out of the center, shrink and fade, over and over
+table.insert(Crosshairs, {
+	Name = "Ember Burst",
+	Build = function(holder)
+		local N = 10
+		local sparks = {}
+		for i = 1, N do
+			local d = dot(holder, 3, Color3.fromRGB(255, 140 + (i % 3) * 25, 30))
+			sparks[i] = { frame = d, angle = i * (2 * math.pi / N) + 0.3, offset = (i % 3) / 3 }
+		end
+		dot(holder, 3, Color3.fromRGB(255, 220, 140))
+
+		return function(elapsed)
+			for _, s in ipairs(sparks) do
+				local p = (elapsed * 0.9 + s.offset) % 1
+				local r = 3 + 22 * p ^ 0.7
+				s.frame.Position = UDim2.new(0.5, math.cos(s.angle) * r, 0.5, math.sin(s.angle) * r)
+				local size = 4 - 3 * p
+				s.frame.Size = UDim2.fromOffset(size, size)
+				s.frame.BackgroundTransparency = p ^ 2
+			end
+		end
+	end,
+})
+
+-- 38) Shrinking Target: a big red ring closes in on the dot, flashes, then repeats
+table.insert(Crosshairs, {
+	Name = "Shrinking Target",
+	Build = function(holder)
+		local RED = Color3.fromRGB(255, 70, 70)
+		local CLOSE, HOLD = 0.9, 0.5
+		local CYCLE = CLOSE + HOLD
+
+		local ring = make("Frame", {
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Position = UDim2.fromScale(0.5, 0.5),
+			Size = UDim2.fromOffset(44, 44),
+			BackgroundTransparency = 1,
+		}, { corner(100) })
+		ring.Parent = holder
+		local ringStroke = stroke(RED, 2, 0)
+		ringStroke.Parent = ring
+
+		bar(holder, 0, -13, 2, 5, RED)
+		bar(holder, 0, 13, 2, 5, RED)
+		bar(holder, -13, 0, 5, 2, RED)
+		bar(holder, 13, 0, 5, 2, RED)
+		dot(holder, 3, RED)
+
+		local start = os.clock()
+
+		return function()
+			local t = (os.clock() - start) % CYCLE
+			local size = 16
+			local flash = 0
+			if t < CLOSE then
+				local e = TweenService:GetValue(t / CLOSE, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+				size = 44 - 28 * e
+			else
+				flash = 1 - (t - CLOSE) / HOLD
+			end
+			ring.Size = UDim2.fromOffset(size, size)
+			ringStroke.Color = RED:Lerp(Color3.new(1, 1, 1), flash)
+			ringStroke.Thickness = 2 + flash * 1.5
+		end
+	end,
+})
+
+-- 39) Color Cycle: a ring and dot that slowly slide through every color
+table.insert(Crosshairs, {
+	Name = "Color Cycle",
+	Build = function(holder)
+		local ring = make("Frame", {
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Position = UDim2.fromScale(0.5, 0.5),
+			Size = UDim2.fromOffset(20, 20),
+			BackgroundTransparency = 1,
+		}, { corner(100) })
+		ring.Parent = holder
+		local ringStroke = stroke(Color3.new(1, 1, 1), 2, 0)
+		ringStroke.Parent = ring
+		local core = dot(holder, 5, Color3.new(1, 1, 1))
+
+		return function(elapsed)
+			local color = Color3.fromHSV((elapsed * 0.2) % 1, 0.75, 1)
+			ringStroke.Color = color
+			core.BackgroundColor3 = color
+			local s = 20 + math.sin(elapsed * 2.5) * 2
+			ring.Size = UDim2.fromOffset(s, s)
+		end
+	end,
+})
+-- ===== PART 4 of 5 =====
+-- (paste directly below part 3)
+local typeLabel = label({
+Text = "",
+TextSize = 12,
+TextColor3 = COL_SUB,
+TextXAlignment = Enum.TextXAlignment.Left,
+Position = UO(14, 173),
+Size = UO(200, 16),
+Parent = panel,
+})
+local equipBtn = make("TextButton", {
+Text = "Equip",
+Font = GB,
+TextSize = 15,
+TextColor3 = COL_DARKTEXT,
+BackgroundColor3 = ACCENT,
+AutoButtonColor = false,
+Position = UO(12, 200),
+Size = UO(204, 38),
+Parent = panel,
+}, { corner(10) })
+local favBtn = make("TextButton", {
+Text = "",
+Font = GB,
+TextSize = 13,
+TextColor3 = COL_TEXT,
+BackgroundColor3 = COL_CARD,
+AutoButtonColor = false,
+Position = UO(12, 246),
+Size = UO(204, 32),
+Parent = panel,
+}, { corner(10) })
+hoverify(favBtn, COL_CARD, COL_CARD_HOVER)
+label({
+Text = "Crosshair size",
+Font = GB,
+TextSize = 12,
+TextXAlignment = Enum.TextXAlignment.Left,
+Position = UO(14, 292),
+Size = UO(120, 16),
+Parent = panel,
+})
+local sizeValue = label({
+Text = "1.00x",
+Font = GB,
+TextSize = 12,
+TextColor3 = ACCENT,
+TextXAlignment = Enum.TextXAlignment.Right,
+Position = UO(110, 292),
+Size = UO(104, 16),
+Parent = panel,
+})
+local sliderHit = make("Frame", {
+BackgroundTransparency = 1,
+Position = UO(12, 314),
+Size = UO(204, 24),
+Parent = panel,
+})
+local track = make("Frame", {
+AnchorPoint = V2(0, 0.5),
+Position = US(0, 0.5),
+Size = U2(1, 0, 0, 6),
+BackgroundColor3 = COL_CARD,
+Parent = sliderHit,
+}, { corner(3) })
+local fill = make("Frame", {
+Size = US(0.25, 1),
+BackgroundColor3 = ACCENT,
+Parent = track,
+}, { corner(3) })
+local knob = make("Frame", {
+AnchorPoint = V5,
+Position = US(0.25, 0.5),
+Size = UO(16, 16),
+BackgroundColor3 = COL_TEXT,
+Parent = track,
+}, { corner(8) })
+local resetBtn = make("TextButton", {
+Text = "Reset size",
+Font = GB,
+TextSize = 12,
+TextColor3 = COL_SUB,
+BackgroundColor3 = COL_CARD,
+AutoButtonColor = false,
+Position = UO(12, 348),
+Size = UO(204, 28),
+Parent = panel,
+}, { corner(8) })
+hoverify(resetBtn, COL_CARD, COL_CARD_HOVER)
+local MIN_SCALE, MAX_SCALE = 0.5, 2.5
+local function setSize(scale)
+scale = math.clamp(scale, MIN_SCALE, MAX_SCALE)
+scale = math.floor(scale * 20 + 0.5) / 20
+liveScale.Scale = scale
+local a = (scale - MIN_SCALE) / (MAX_SCALE - MIN_SCALE)
+fill.Size = US(a, 1)
+knob.Position = US(a, 0.5)
+sizeValue.Text = string.format("%.2fx", scale)
+end
+local function sliderFromInput(input)
+local a = math.clamp((input.Position.X - track.AbsolutePosition.X) / track.AbsoluteSize.X, 0, 1)
+setSize(MIN_SCALE + a * (MAX_SCALE - MIN_SCALE))
+end
+local sliderDragging = false
+sliderHit.InputBegan:Connect(function(input)
+if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+sliderDragging = true
+sliderFromInput(input)
+end
+end)
+resetBtn.MouseButton1Click:Connect(function()
+setSize(1)
+end)
+for i, def in ipairs(Crosshairs) do
+local card = make("TextButton", {
+Text = "",
+AutoButtonColor = false,
+BackgroundColor3 = COL_CARD,
+LayoutOrder = i,
+Parent = scroll,
+}, { corner(12) })
+local cardStroke = stroke(COL_BORDER, 1, 0)
+cardStroke.Parent = card
+local cardScale = make("UIScale", { Parent = card })
+local preview = make("Frame", {
+BackgroundColor3 = RGB(9, 10, 14),
+ClipsDescendants = true,
+Position = UO(8, 8),
+Size = UO(138, 78),
+Parent = card,
+}, { corner(8) })
+local kind = "Off"
+if def.Build then
+local h = mount(def, preview)
+kind = updaters[h] and "Animated" or "Static"
+else
+label({
+Text = "OFF",
+Font = GB,
+TextSize = 16,
+TextColor3 = COL_SUB,
+Size = US(1, 1),
+Parent = preview,
+})
+end
+label({
+Text = def.Name,
+Font = GB,
+TextSize = 13,
+TextXAlignment = Enum.TextXAlignment.Left,
+TextTruncate = Enum.TextTruncate.AtEnd,
+Position = UO(10, 92),
+Size = UO(134, 18),
+Parent = card,
+})
+label({
+Text = kind,
+TextSize = 11,
+TextColor3 = kind == "Animated" and ACCENT or COL_SUB,
+TextXAlignment = Enum.TextXAlignment.Left,
+Position = UO(10, 112),
+Size = UO(134, 16),
+Parent = card,
+})
+local pill = make("TextLabel", {
+Text = "EQUIPPED",
+Font = GB,
+TextSize = 10,
+TextColor3 = COL_DARKTEXT,
+BackgroundColor3 = ACCENT,
+Position = UO(14, 14),
+Size = UO(62, 16),
+Visible = false,
+Parent = card,
+}, { corner(8) })
+local star = make("TextButton", {
+Text = "\u{2606}",
+Font = GB,
+TextSize = 18,
+TextColor3 = COL_SUB,
+BackgroundColor3 = C3(0, 0, 0),
+BackgroundTransparency = 0.45,
+AutoButtonColor = false,
+AnchorPoint = V2(1, 0),
+Position = U2(1, -12, 0, 12),
+Size = UO(24, 24),
+Parent = card,
+}, { corner(12) })
+cardData[i] = {
+card = card,
+stroke = cardStroke,
+scale = cardScale,
+pill = pill,
+star = star,
+kind = kind,
+}
+card.MouseEnter:Connect(function()
+tween(card, FAST, { BackgroundColor3 = COL_CARD_HOVER })
+tween(cardScale, FAST, { Scale = 1.03 })
+showDetail(i)
+end)
+card.MouseLeave:Connect(function()
+tween(card, FAST, { BackgroundColor3 = COL_CARD })
+tween(cardScale, FAST, { Scale = 1 })
+showDetail(selectedIndex)
+end)
+card.MouseButton1Click:Connect(function()
+selectedIndex = i
+shownIndex = i
+cardScale.Scale = 0.93
+tween(cardScale, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Scale = 1.03 })
+equip(i)
+end)
+star.MouseButton1Click:Connect(function()
+favorites[i] = not favorites[i] or nil
+refreshCards()
+showDetail(shownIndex)
+toast(favorites[i] and ("Favorited: " .. def.Name) or ("Removed favorite: " .. def.Name))
+end)
+end
+local function matches(i)
+local d = cardData[i]
+if searchText ~= "" and not string.find(string.lower(Crosshairs[i].Name), searchText, 1, true) then
+return false
+end
+if currentFilter == "Favorites" then
+return favorites[i] == true
+elseif currentFilter == "Animated" then
+return d.kind == "Animated"
+elseif currentFilter == "Static" then
+return d.kind == "Static"
+end
+return true
+end
+function refreshCards()
+local shown, favCount = 0, 0
+for i, d in ipairs(cardData) do
+local ok = matches(i)
+d.card.Visible = ok
+if ok then
+shown += 1
+end
+if favorites[i] then
+favCount += 1
+end
+local eq = (i == equippedIndex)
+d.stroke.Color = eq and ACCENT or COL_BORDER
+d.stroke.Thickness = eq and 2 or 1
+d.pill.Visible = eq
+d.star.Text = favorites[i] and "\u{2605}" or "\u{2606}"
+d.star.TextColor3 = favorites[i] and COL_GOLD or COL_SUB
+d.card.LayoutOrder = favorites[i] and (i - 1000) or i
+end
+emptyLabel.Visible = (shown == 0)
+tabButtons.Favorites.Text = "Favorites (" .. favCount .. ")"
+for name, b in pairs(tabButtons) do
+local active = (name == currentFilter)
+b.BackgroundColor3 = active and ACCENT or COL_CARD
+b.TextColor3 = active and COL_DARKTEXT or COL_SUB
+end
+footer.Text = string.format(
+"Showing %d of %d   \u{2022}   Equipped: %s",
+shown,
+#Crosshairs,
+Crosshairs[equippedIndex].Name
+)
+end
+local detailHolder, detailIndex
+function showDetail(index)
+shownIndex = index
+local def = Crosshairs[index]
+if detailIndex ~= index or not (detailHolder and detailHolder.Parent) then
+for _, c in ipairs(previewWrapper:GetChildren()) do
+if c.Name == "Holder" then
+c:Destroy()
+end
+end
+detailHolder = nil
+detailIndex = index
+if def.Build then
+detailHolder = mount(def, previewWrapper)
+end
+end
+offLabel.Visible = (def.Build == nil)
+nameLabel.Text = def.Name
+local eq = (index == equippedIndex)
+typeLabel.Text = cardData[index].kind .. (eq and "   \u{2022}   Equipped" or "")
+if eq and index ~= 1 then
+equipBtn.Text = "Unequip"
+equipBtn.BackgroundColor3 = COL_RED
+equipBtn.TextColor3 = COL_TEXT
+elseif eq then
+equipBtn.Text = "Equipped"
+equipBtn.BackgroundColor3 = COL_CARD
+equipBtn.TextColor3 = COL_SUB
+else
+equipBtn.Text = "Equip"
+equipBtn.BackgroundColor3 = ACCENT
+equipBtn.TextColor3 = COL_DARKTEXT
+end
+favBtn.Text = favorites[index] and "\u{2605}  Remove from favorites" or "\u{2606}  Add to favorites"
+favBtn.TextColor3 = favorites[index] and COL_GOLD or COL_TEXT
+favBtn.Visible = (index ~= 1)
+end
+equipBtn.MouseButton1Click:Connect(function()
+if shownIndex == equippedIndex then
+if shownIndex ~= 1 then
+equip(1)
+end
+else
+selectedIndex = shownIndex
+equip(shownIndex)
+end
+end)
+favBtn.MouseButton1Click:Connect(function()
+local i = shownIndex
+favorites[i] = not favorites[i] or nil
+refreshCards()
+showDetail(i)
+toast(favorites[i] and ("Favorited: " .. Crosshairs[i].Name) or ("Removed favorite: " .. Crosshairs[i].Name))
+end)
+searchBox:GetPropertyChangedSignal("Text"):Connect(function()
+local t = string.lower(searchBox.Text)
+searchText = string.match(t, "^%s*(.-)%s*$")
+refreshCards()
+end)
+local toastLabel = make("TextLabel", {
+Text = "",
+Font = GB,
+TextSize = 14,
+TextColor3 = COL_TEXT,
+BackgroundColor3 = COL_BG,
+BackgroundTransparency = 1,
+TextTransparency = 1,
+AutomaticSize = Enum.AutomaticSize.X,
+AnchorPoint = V2(0.5, 1),
+Position = U2(0.5, 0, 1, -28),
+Size = UO(0, 38),
+ZIndex = 30,
+Parent = gui,
+}, {
+corner(10),
+make("UIPadding", { PaddingLeft = UDim.new(0, 18), PaddingRight = UDim.new(0, 18) }),
+})
+local toastStroke = stroke(ACCENT, 1.5, 1)
+toastStroke.Parent = toastLabel
+local toastToken = 0
+function toast(text)
+toastToken += 1
+local my = toastToken
+toastLabel.Text = text
+toastLabel.BackgroundTransparency = 0.1
+toastLabel.TextTransparency = 0
+toastStroke.Transparency = 0.35
+toastLabel.Position = U2(0.5, 0, 1, -10)
+tween(toastLabel, TweenInfo.new(0.25, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {
+Position = U2(0.5, 0, 1, -28),
+})
+task.delay(1.8, function()
+if my ~= toastToken then
+return
+end
+local info = TweenInfo.new(0.3)
+tween(toastLabel, info, { BackgroundTransparency = 1, TextTransparency = 1 })
+tween(toastStroke, info, { Transparency = 1 })
+end)
+end
+local fit = 1
+local openAlpha = 0
+local targetAlpha = 0
+local function applyOpen()
+local a = openAlpha
+windowScale.Scale = fit * (0.88 + 0.12 * a)
+dim.BackgroundTransparency = 1 - 0.4 * a
+blur.Size = 14 * a
+end
+local function updateFit()
+local s = gui.AbsoluteSize
+if s.X < 50 or s.Y < 50 then
+local cam = workspace.CurrentCamera
+if cam then
+s = cam.ViewportSize
+end
+end
+fit = math.clamp(math.min(s.X / 820, s.Y / 520), 0.45, 1.25)
+applyOpen()
+end
+gui:GetPropertyChangedSignal("AbsoluteSize"):Connect(updateFit)
+RunService.RenderStepped:Connect(function(dt)
+if openAlpha == targetAlpha then
+return
+end
+openAlpha += (targetAlpha - openAlpha) * math.min(1, dt * 14)
+if math.abs(targetAlpha - openAlpha) < 0.005 then
+openAlpha = targetAlpha
+end
+applyOpen()
+if openAlpha == 0 and targetAlpha == 0 then
+window.Visible = false
+dim.Visible = false
+end
+end)
+function setOpen(open)
+if open == inventoryOpen then
+return
+end
+inventoryOpen = open
+refreshMouseIcon()
+targetAlpha = open and 1 or 0
+if open then
+window.Visible = true
+dim.Visible = true
+showDetail(selectedIndex)
+end
+end
+local openBtn = make("TextButton", {
+Name = "OpenInventory",
+Text = "Crosshairs  [C]",
+Font = GB,
+TextSize = 15,
+TextColor3 = COL_DARKTEXT,
+BackgroundColor3 = ACCENT,
+AutoButtonColor = false,
+AnchorPoint = V2(0, 1),
+Position = U2(0, 16, 1, -16),
+Size = UO(150, 42),
+ZIndex = 20,
+Parent = gui,
+}, { corner(12) })
+local openBtnScale = make("UIScale", { Parent = openBtn })
+openBtn.MouseEnter:Connect(function()
+tween(openBtnScale, FAST, { Scale = 1.07 })
+end)
+openBtn.MouseLeave:Connect(function()
+tween(openBtnScale, FAST, { Scale = 1 })
+end)
+openBtn.MouseButton1Click:Connect(function()
+setOpen(not inventoryOpen)
+end)
+local dragging = false
+local dragStart, startPos
+-- END OF PART 4
+-- ===== PART 5 of 5 =====
+-- (paste directly below part 4)
+dragBar.InputBegan:Connect(function(input)
+if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+dragging = true
+dragStart = input.Position
+startPos = window.Position
+end
+end)
+UserInputService.InputChanged:Connect(function(input)
+local moving = input.UserInputType == Enum.UserInputType.MouseMovement
+or input.UserInputType == Enum.UserInputType.Touch
+if not moving then
+return
+end
+if dragging then
+local half = gui.AbsoluteSize / 2
+local nx = math.clamp(startPos.X.Offset + (input.Position.X - dragStart.X), -half.X + 80, half.X - 80)
+local ny = math.clamp(startPos.Y.Offset + (input.Position.Y - dragStart.Y), -half.Y + 40, half.Y - 40)
+window.Position = U2(0.5, nx, 0.5, ny)
+end
+if sliderDragging then
+sliderFromInput(input)
+end
+end)
+UserInputService.InputEnded:Connect(function(input)
+if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+dragging = false
+sliderDragging = false
+end
+end)
+local function cycle(dir)
+local nextIndex = ((equippedIndex - 1 + dir) % #Crosshairs) + 1
+selectedIndex = nextIndex
+shownIndex = nextIndex
+equip(nextIndex)
+end
+UserInputService.InputBegan:Connect(function(input, processed)
+if processed or UserInputService:GetFocusedTextBox() then
+return
+end
+if input.KeyCode == Enum.KeyCode.C then
+setOpen(not inventoryOpen)
+elseif input.KeyCode == Enum.KeyCode.LeftBracket then
+cycle(-1)
+elseif input.KeyCode == Enum.KeyCode.RightBracket then
+cycle(1)
+end
+end)
+setSize(1)
+updateFit()
+refreshCards()
+equip(2, true)
+print("[CrosshairInventory] ready - click the Crosshairs button or press C")
+-- END OF PART 5
